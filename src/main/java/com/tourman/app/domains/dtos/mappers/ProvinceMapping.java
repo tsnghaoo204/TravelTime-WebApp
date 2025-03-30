@@ -4,7 +4,7 @@ import com.tourman.app.domains.dtos.commons.ProvinceDto;
 import com.tourman.app.domains.entities.Province;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "string")
+@Mapper(componentModel = "spring")
 public interface ProvinceMapping {
     ProvinceDto toDto(Province province);
     Province fromDto(ProvinceDto provinceDto);

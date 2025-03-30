@@ -40,22 +40,22 @@ public class TourServiceImpl implements TourService {
         return tourMapping.toTourDto(newTour);
     }
 
-//    @Override
-//    public TourDto updateTour(Long id, TourDto tour) {
-//        Tour foundTour = tourRepository.findById(id).orElseThrow(() -> new RuntimeException("Tour not found"));
-//        foundTour.setTourName(tour.getTourName());
-//        foundTour.setDescription(tour.getDescription());
-//        foundTour.setPrice(tour.getPrice());
-//        foundTour.setTourer(tour.getTourer());
-//        foundTour.setStartDate(tour.getStartDate());
-//        foundTour.setEndDate(tour.getEndDate());
-//        foundTour.setMaxParticipants(tour.getMaxParticipants());
-//        foundTour.setImageUrl(tour.getImageUrl());
-//        foundTour.setStatus(TourStatus.valueOf(tour.getStatus().toUpperCase()));
-//
-//        Tour newTour = tourRepository.save(foundTour);
-//        return tourMapping.toTourDto(newTour);
-//    }
+    @Override
+    public TourDto updateTour(Long id, TourDto tour) {
+        Tour foundTour = tourRepository.findById(id).orElseThrow(() -> new RuntimeException("Tour not found"));
+        foundTour.setTourName(tour.getTourName());
+        foundTour.setDescription(tour.getDescription());
+        foundTour.setPrice(tour.getPrice());
+        foundTour.setTourer(tour.getTourer());
+        foundTour.setStartDate(tour.getStartDate());
+        foundTour.setEndDate(tour.getEndDate());
+        foundTour.setMaxParticipants(tour.getMaxParticipants());
+        foundTour.setImageUrl(tour.getImageUrl());
+        foundTour.setStatus(TourStatus.valueOf(tour.getStatus().toUpperCase()));
+
+        Tour newTour = tourRepository.save(foundTour);
+        return tourMapping.toTourDto(newTour);
+    }
 
     @Override
     public String deleteTour(Long id) {

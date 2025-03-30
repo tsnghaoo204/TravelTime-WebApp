@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,11 +23,13 @@ public class TourController {
         return ResponseEntity.ok(tourService.getTours());
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROVIDER')")
     @GetMapping("/{id}")
     public ResponseEntity<TourDto> getTourById(@RequestParam Long id) {
         return ResponseEntity.ok(tourService.getTourById(id));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'PROVIDER')")
     @PostMapping
     public ResponseEntity<TourDto> createTour(@RequestBody TourDto tourDto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(tourService.addTour(tourDto));

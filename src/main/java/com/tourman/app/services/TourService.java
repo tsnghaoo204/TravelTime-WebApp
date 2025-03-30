@@ -9,6 +9,6 @@ public interface TourService {
     List<TourDto> getTours();
     TourDto getTourById(Long id);
     TourDto addTour(TourDto tour);
-    //TourDto updateTour(Long id ,TourDto tour);
+    TourDto updateTour(Long id ,TourDto tour);
     String deleteTour(Long id);
 }

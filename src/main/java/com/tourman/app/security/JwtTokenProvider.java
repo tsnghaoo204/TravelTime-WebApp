@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 public class JwtTokenProvider{
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CustomUserDetailService customUserDetailService;
     @Value("${app.jwt-secret}")
     private String SECRET_KEY;
 
@@ -34,9 +35,10 @@ public class JwtTokenProvider{
     @Value("${app.jwt-refresh-expiration-miliseconds}")
     private long REFRESH_EXPIRATION_TIME;
 
-    public JwtTokenProvider(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository) {
+    public JwtTokenProvider(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository, CustomUserDetailService customUserDetailService) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.customUserDetailService = customUserDetailService;
     }
 
     private Key getSecretKey(){
@@ -69,10 +71,15 @@ public class JwtTokenProvider{
         return extractClaims(token, Claims::getExpiration).before(new Date());
     }
 
-    public boolean validateToken(String token, UserDetails userDetails) {
-        String username = getUsernameFromToken(token);
-        return (username.equals(userDetails.getUsername()) && !isExpired(token));
+    public boolean validateToken(String token) {
+        try {
+            Jwts.parser().setSigningKey(getSecretKey()).parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
+
 
     private <T> T extractClaims(String token, Function<Claims, T> claimsSolver) {
         final Claims claims = extractAllClaims(token);
@@ -99,6 +106,20 @@ public class JwtTokenProvider{
         refreshTokenRepository.save(refreshToken);
         return token;
     }
+
+    public String generateAccessTokenFromRefreshToken(String refreshToken) {
+        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+
+        if (storedToken.getExpiryDate().before(new Date())) {
+            refreshTokenRepository.delete(storedToken);
+            throw new RuntimeException("Refresh token expired");
+        }
+        String username = getUsernameFromToken(storedToken.getToken());
+        UserDetails user = customUserDetailService.loadUserByUsername(username);
+        return generateToken(new HashMap<>(), user);
+    }
+
 
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()

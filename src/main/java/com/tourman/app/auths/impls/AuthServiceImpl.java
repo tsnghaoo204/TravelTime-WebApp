@@ -5,11 +5,14 @@ import com.tourman.app.domains.dtos.commons.TourProviderDto;
 import com.tourman.app.domains.dtos.mappers.TourProviderMapping;
 import com.tourman.app.domains.dtos.requests.LoginRequest;
 import com.tourman.app.domains.dtos.requests.RegisterUserRequest;
+
 import com.tourman.app.domains.dtos.responses.JwtResponseDto;
+import com.tourman.app.domains.entities.RefreshToken;
 import com.tourman.app.domains.entities.Role;
 import com.tourman.app.domains.entities.TourProvider;
 import com.tourman.app.domains.entities.User;
 import com.tourman.app.exceptions.EmailAlreadyExistsException;
+import com.tourman.app.repositories.RefreshTokenRepository;
 import com.tourman.app.repositories.RoleRepository;
 import com.tourman.app.repositories.TourProviderRepository;
 import com.tourman.app.repositories.UserRepository;
@@ -18,14 +21,16 @@ import com.tourman.app.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final CustomUserDetailService customUserDetailService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Override
     public boolean registerUser(RegisterUserRequest request) {
@@ -71,10 +77,11 @@ public class AuthServiceImpl implements AuthService {
         );
 
         UserDetails userDetails = customUserDetailService.loadUserByUsername(request.getEmailOrPhone());
-        String token = jwtTokenProvider.generateToken(new HashMap<>(), userDetails);
-        String roles = jwtTokenProvider.getRoleFromToken(token);
+
+        String accessToken = jwtTokenProvider.generateToken(new HashMap<>(), userDetails);
+        String role =  jwtTokenProvider.getRoleFromToken(accessToken);
         String refreshToken = jwtTokenProvider.generateRefreshToken(userDetails);
-        return new JwtResponseDto(token,refreshToken,roles);
+        return new JwtResponseDto(accessToken, role, refreshToken);
     }
 
     @Override
@@ -97,5 +104,47 @@ public class AuthServiceImpl implements AuthService {
         return true;
     }
 
+    @Override
+    public Map<String, Object> googleInfor(OAuth2User principal) {
+        String email = principal.getAttribute("email");
+        String firstName = (String) Optional.ofNullable(principal.getAttribute("given_name")).orElse("User");
+        String lastName = (String) Optional.ofNullable(principal.getAttribute("family_name")).orElse("User");
+        String phone = (String) Optional.ofNullable(principal.getAttribute("phone_number")).orElse("");
 
+        Optional<User> existingUser = userRepository.findUserByEmailOrPhone(email, email);
+        User user = existingUser.orElseGet(() -> {
+            User newUser = new User();
+            newUser.setEmail(email);
+            newUser.setFirstName(firstName);
+            newUser.setLastName(lastName);
+            newUser.setPhone(phone);
+            Role role = roleRepository.findByRoleName("ROLE_USER");
+            newUser.setRole(Set.of(role));
+            return userRepository.save(newUser);
+        });
+
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+                user.getEmail(), "",
+                user.getRole().stream()
+                        .map(role -> new SimpleGrantedAuthority(role.getRoleName()))
+                        .collect(Collectors.toSet())
+        );
+
+        String accessToken = jwtTokenProvider.generateToken(new HashMap<>(), userDetails);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(userDetails);
+
+        if (accessToken == null || refreshToken == null) {
+            throw new IllegalStateException("Token generation failed");
+        }
+
+        return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
+    }
+
+
+
+    @Override
+    public void logout(String token) {
+        Optional<RefreshToken> refreshToken = refreshTokenRepository.findByToken(token);
+        refreshToken.ifPresent(refreshTokenRepository::delete);
+    }
 }

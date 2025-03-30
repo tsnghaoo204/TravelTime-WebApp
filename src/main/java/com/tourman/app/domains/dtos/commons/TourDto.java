@@ -23,4 +23,5 @@ public class TourDto {
     private String maxParticipants;
     private String imageUrl;
     private String status;
+    private long providerId;
 }

@@ -7,7 +7,7 @@ import java.util.List;
 public interface ProvinceService {
     List<ProvinceDto> getProvinces();
     ProvinceDto getProvinceById(Long id);
-    ProvinceDto createProvince(ProvinceDto provinceDto);
+    boolean createProvince(ProvinceDto provinceDto);
     ProvinceDto updateProvince(Long id ,ProvinceDto provinceDto);
     void deleteProvince(Long id);
 }
