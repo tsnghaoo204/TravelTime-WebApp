@@ -12,6 +12,7 @@ import com.tourman.app.domains.entities.Role;
 import com.tourman.app.domains.entities.TourProvider;
 import com.tourman.app.domains.entities.User;
 import com.tourman.app.exceptions.EmailAlreadyExistsException;
+import com.tourman.app.exceptions.PhoneAlreadyExistsException;
 import com.tourman.app.repositories.RefreshTokenRepository;
 import com.tourman.app.repositories.RoleRepository;
 import com.tourman.app.repositories.TourProviderRepository;
@@ -50,6 +51,9 @@ public class AuthServiceImpl implements AuthService {
     public boolean registerUser(RegisterUserRequest request) {
         if(userRepository.existsByEmail(request.getEmail())) {
             throw new EmailAlreadyExistsException("Email already exists");
+        }
+        if(userRepository.existsByPhone(request.getPhone())){
+            throw new PhoneAlreadyExistsException();
         }
         User user = new User();
         user.setEmail(request.getEmail());
@@ -109,7 +113,6 @@ public class AuthServiceImpl implements AuthService {
         String email = principal.getAttribute("email");
         String firstName = (String) Optional.ofNullable(principal.getAttribute("given_name")).orElse("User");
         String lastName = (String) Optional.ofNullable(principal.getAttribute("family_name")).orElse("User");
-        String phone = (String) Optional.ofNullable(principal.getAttribute("phone_number")).orElse("");
 
         Optional<User> existingUser = userRepository.findUserByEmailOrPhone(email, email);
         User user = existingUser.orElseGet(() -> {
@@ -117,14 +120,23 @@ public class AuthServiceImpl implements AuthService {
             newUser.setEmail(email);
             newUser.setFirstName(firstName);
             newUser.setLastName(lastName);
-            newUser.setPhone(phone);
+            newUser.setPhone(null);
+            newUser.setPassword(null);
             Role role = roleRepository.findByRoleName("ROLE_USER");
             newUser.setRole(Set.of(role));
             return userRepository.save(newUser);
         });
 
+        String password = user.getPassword();
+        if (password == null || password.isEmpty()) {
+            // có thể đặt một giá trị giả, vì password OAuth không dùng
+            password = "{noop}oauthuser";
+            // hoặc tạo chuỗi ngẫu nhiên, hoặc bất kỳ chuỗi nào không rỗng
+        }
+
         UserDetails userDetails = new org.springframework.security.core.userdetails.User(
-                user.getEmail(), "",
+                user.getEmail(),
+                password,
                 user.getRole().stream()
                         .map(role -> new SimpleGrantedAuthority(role.getRoleName()))
                         .collect(Collectors.toSet())

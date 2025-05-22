@@ -61,6 +61,7 @@ public class SecurityConfiguration {
                     }
                 )
                 .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/oauth2/authorization/google")
                         .successHandler((request, response, authentication) -> {
                             OAuth2User principal = (OAuth2User) authentication.getPrincipal();
                             Map<String, Object> authResponse = authServiceImpl.googleInfor(principal);

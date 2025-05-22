@@ -6,25 +6,22 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Set;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "provinces")
-public class Province {
+@Table(name = "destinations")
+public class Destination {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private long desId;
 
-    private String name;
+    private String desTitle;
 
-    private String code;
+    private String desDescription;
 
-    private String description;
+    private String desLocation;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "province")
-    private Set<Attraction> attractions;
+    private String imagePath;
 }

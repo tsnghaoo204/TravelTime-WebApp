@@ -36,7 +36,6 @@ public class User {
 
     private String password;
 
-    @Column(unique = true, nullable = false)
     private String phone;
 
     @ManyToMany(fetch = FetchType.EAGER,cascade = CascadeType.REMOVE)
